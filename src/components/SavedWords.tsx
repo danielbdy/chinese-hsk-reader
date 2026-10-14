@@ -1,9 +1,13 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { highlight } from '../lib/anki'
 import type { Card } from '../lib/cards'
+import { download, share } from '../lib/deliver'
 
-// The exporter pulls in sql.js (about 650 kB), so it loads only when an export button is used.
+// The exporter pulls in sql.js (about 650 kB), so it loads only when the deck is first built.
 const loadExporter = () => import('../lib/exportDeck')
+
+// Tells the person the share sheet was blocked, so we fall back to a download without an error.
+const isBlocked = (error: unknown) => error instanceof DOMException && error.name === 'NotAllowedError'
 
 interface Props {
   cards: Card[]
@@ -35,7 +39,48 @@ export function SavedWords({ cards, onRemove, onClose }: Props) {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [open, setOpen] = useState<string | null>(null)
+  // Built ahead of the tap: navigator.share only works while the tap's activation is fresh,
+  // so the click handler must not wait on the sql.js build.
+  // Remembers which card list the file was built from, so a stale deck is never shared.
+  const [built, setBuilt] = useState<{ cards: Card[]; file: File } | null>(null)
+  const deck = built?.cards === cards ? built.file : null
   const canShare = typeof navigator.canShare === 'function'
+
+  useEffect(() => {
+    let current = true
+    loadExporter()
+      .then(({ apkgFile }) => apkgFile(cards))
+      .then((file) => {
+        if (current) setBuilt({ cards, file })
+      })
+      .catch(() => {
+        // The button still builds the deck on tap and reports any error there.
+      })
+    return () => {
+      current = false
+    }
+  }, [cards])
+
+  const sendToAnki = async (file: File): Promise<string> => {
+    setBusy(true)
+    setMessage('')
+    try {
+      const shared = await share(file).catch((error: unknown) => {
+        if (isBlocked(error)) return null
+        throw error
+      })
+      if (shared) return ''
+      download(file)
+      return shared === null
+        ? 'The share sheet was blocked, so the deck was downloaded instead. Open the .apkg file with AnkiDroid.'
+        : 'Your browser cannot share files, so the deck was downloaded instead.'
+    } catch (error) {
+      setMessage(`Export failed: ${String(error)}`)
+      return ''
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const run = async (action: () => Promise<string>) => {
     setBusy(true)
@@ -111,15 +156,17 @@ export function SavedWords({ cards, onRemove, onClose }: Props) {
                   type="button"
                   className="button-primary"
                   disabled={busy}
-                  onClick={() =>
+                  onClick={() => {
+                    if (deck) {
+                      // No await before share(): the tap is still active here.
+                      void sendToAnki(deck)
+                      return
+                    }
                     run(async () => {
-                      const { apkgFile, download, share } = await loadExporter()
-                      const file = await apkgFile(cards)
-                      if (await share(file)) return ''
-                      download(file)
-                      return 'Your browser cannot share files, so the deck was downloaded instead.'
+                      const { apkgFile } = await loadExporter()
+                      return sendToAnki(await apkgFile(cards))
                     })
-                  }
+                  }}
                 >
                   Send to AnkiDroid
                 </button>
@@ -130,8 +177,7 @@ export function SavedWords({ cards, onRemove, onClose }: Props) {
                 disabled={busy}
                 onClick={() =>
                   run(async () => {
-                    const { apkgFile, download } = await loadExporter()
-                    download(await apkgFile(cards))
+                    download(deck ?? (await (await loadExporter()).apkgFile(cards)))
                     return 'Deck downloaded. Open the .apkg file with AnkiDroid (or Anki) to import it.'
                   })
                 }
@@ -144,7 +190,7 @@ export function SavedWords({ cards, onRemove, onClose }: Props) {
                 disabled={busy}
                 onClick={() =>
                   run(async () => {
-                    const { download, textFile } = await loadExporter()
+                    const { textFile } = await loadExporter()
                     download(textFile(cards))
                     return 'Text file downloaded. In Anki use File > Import and pick the Basic note type.'
                   })
