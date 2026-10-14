@@ -14,6 +14,8 @@ settings live in the browser's local storage.
 - Works on a phone browser, which is the main way the app is used.
 - Articles never leave the device.
 
+Amended by [0003](0003-server-side-article-fetch.md): one serverless function fetches article links.
+
 ## Revisit when
 
 We need sync between devices, user accounts, or data too large to ship to the browser.

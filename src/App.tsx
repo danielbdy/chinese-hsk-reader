@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { ArticleInput } from './components/ArticleInput'
+import { ArticleInput, type Article } from './components/ArticleInput'
 import { LevelPicker } from './components/LevelPicker'
 import { Reader } from './components/Reader'
 import { SavedWords } from './components/SavedWords'
@@ -13,6 +13,7 @@ function App() {
   const wordData = useWordData()
   const [level, setLevel] = useLocalStorage('level', 3)
   const [text, setText] = useLocalStorage('article', '')
+  const [source, setSource] = useLocalStorage('source', '')
   const [known, setKnown] = useLocalStorage<string[]>('known', [])
   const [unknown, setUnknown] = useLocalStorage<string[]>('unknown', [])
   const [cards, setCards] = useLocalStorage<Card[]>('cards', [])
@@ -62,7 +63,7 @@ function App() {
               meaning,
               hsk: token.hsk,
               sentence,
-              source: text.split('\n')[0].trim().slice(0, 60),
+              source: (source || text.split('\n')[0]).trim().slice(0, 80),
               addedAt: new Date().toISOString(),
             },
           ],
@@ -90,8 +91,9 @@ function App() {
       {editing || !text ? (
         <ArticleInput
           initialText={text}
-          onRead={(t) => {
-            setText(t)
+          onRead={(article: Article) => {
+            setText(article.text)
+            setSource(article.title ?? '')
             setEditing(false)
           }}
         />
