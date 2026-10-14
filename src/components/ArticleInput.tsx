@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { errorMessage } from '../lib/readResponse'
 import { SAMPLE_ARTICLE } from '../sampleArticle'
 
 export interface Article {
@@ -32,8 +33,8 @@ export function ArticleInput({ initialText, onRead }: Props) {
     setError('')
     try {
       const res = await fetch(`/api/fetch-article?url=${encodeURIComponent(link.trim())}`)
-      const body = (await res.json()) as FetchResponse & { error?: string }
-      if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`)
+      if (!res.ok) throw new Error(await errorMessage(res))
+      const body = (await res.json()) as FetchResponse
       const article: Article = { text: body.paragraphs.join('\n'), title: body.title, url: body.url }
       setStatus('idle')
       onRead(article)

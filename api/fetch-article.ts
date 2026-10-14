@@ -4,7 +4,7 @@ import { publicHttpUrl } from '../src/lib/safeUrl.ts'
 // Vercel serverless function: fetches one news page and returns its title and paragraphs.
 // Browsers can't read other sites directly (CORS), so the fetch happens here.
 
-const TIMEOUT_MS = 8000
+const TIMEOUT_MS = 6000
 const MAX_BYTES = 2 * 1024 * 1024
 
 interface Request {
@@ -48,13 +48,27 @@ async function readLimited(res: globalThis.Response): Promise<Uint8Array> {
 }
 
 export default async function handler(req: Request, res: Response) {
+  try {
+    await fetchArticle(req, res)
+  } catch (error) {
+    // Every failure must answer with JSON; the app can't read a platform error page.
+    console.error('fetch-article failed', error)
+    json(res, 500, { error: 'The server could not read that page. Paste the text instead.' })
+  }
+}
+
+async function fetchArticle(req: Request, res: Response) {
   const raw = Array.isArray(req.query.url) ? req.query.url[0] : req.query.url
   const url = raw ? publicHttpUrl(raw) : null
   if (!url) return json(res, 400, { error: 'Enter a full http or https link to a news page.' })
 
   try {
     const upstream = await fetch(url, {
-      headers: { 'User-Agent': 'HSK-Reader/0.1 (personal reading tool)', Accept: 'text/html' },
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; HSK-Reader/0.1; personal reading tool)',
+        Accept: 'text/html,application/xhtml+xml',
+        'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.5',
+      },
       redirect: 'follow',
       signal: AbortSignal.timeout(TIMEOUT_MS),
     })

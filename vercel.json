@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/fetch-article.ts": {
+      "maxDuration": 20
+    }
+  }
+}
