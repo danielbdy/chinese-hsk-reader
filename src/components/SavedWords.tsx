@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { highlight } from '../lib/anki'
 import type { Card } from '../lib/cards'
 
 // The exporter pulls in sql.js (about 650 kB), so it loads only when an export button is used.
@@ -10,9 +11,30 @@ interface Props {
   onClose: () => void
 }
 
+/** The front and back of the Anki card for one word, as the deck will show them. */
+function CardPreview({ card }: { card: Card }) {
+  return (
+    <div className="card-preview">
+      <div className="card-preview__label">Front</div>
+      <div lang="zh-CN">
+        <b>{card.word}</b>
+      </div>
+      <div lang="zh-CN" dangerouslySetInnerHTML={{ __html: highlight(card.sentence, card.word) }} />
+      <div className="card-preview__label">Back</div>
+      <div>{card.pinyin}</div>
+      <div>{card.meaning}</div>
+      <div className="sheet__note">
+        {card.hsk !== null && `HSK ${card.hsk} · `}
+        {card.source ?? ''}
+      </div>
+    </div>
+  )
+}
+
 export function SavedWords({ cards, onRemove, onClose }: Props) {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  const [open, setOpen] = useState<string | null>(null)
   const canShare = typeof navigator.canShare === 'function'
 
   const run = async (action: () => Promise<string>) => {
@@ -56,14 +78,29 @@ export function SavedWords({ cards, onRemove, onClose }: Props) {
                   <span className="saved-list__detail">
                     <span className="sheet__sense-pinyin">{card.pinyin}</span> {card.meaning}
                   </span>
-                  <button
-                    type="button"
-                    className="button-link"
-                    aria-label={`Remove ${card.word}`}
-                    onClick={() => onRemove(card.word)}
-                  >
-                    Remove
-                  </button>
+                  <span className="saved-list__actions">
+                    <button
+                      type="button"
+                      className="button-link"
+                      aria-expanded={open === card.word}
+                      onClick={() => setOpen(open === card.word ? null : card.word)}
+                    >
+                      {open === card.word ? 'Hide' : 'Preview'}
+                    </button>
+                    <button
+                      type="button"
+                      className="button-link"
+                      aria-label={`Remove ${card.word}`}
+                      onClick={() => onRemove(card.word)}
+                    >
+                      Remove
+                    </button>
+                  </span>
+                  {open === card.word && (
+                    <div className="saved-list__preview">
+                      <CardPreview card={card} />
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

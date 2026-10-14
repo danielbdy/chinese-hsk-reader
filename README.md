@@ -22,6 +22,10 @@ npm run test:e2e   # Playwright tests on a phone viewport (builds first: npm run
 `npm run dev` and `npm run build` first run `npm run data`, which builds the dictionary into
 `public/data/`. Word data sources and licences are listed in [`data/README.md`](data/README.md).
 
+Reading from a link uses the serverless function in `api/`. `npm run dev` serves only the front end,
+so use `npx vercel dev` to try link import locally. The tests stub the function. See
+[decision 0003](docs/decisions/0003-server-side-article-fetch.md) for why it exists and its limits.
+
 To check an Anki export with Anki's own importer:
 
 ```sh
