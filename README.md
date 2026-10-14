@@ -16,6 +16,18 @@ npm test           # unit tests (Vitest)
 npm run lint       # oxlint
 npm run typecheck  # TypeScript
 npm run build      # production build into dist/
+npm run test:e2e   # Playwright tests on a phone viewport (builds first: npm run build)
+```
+
+`npm run dev` and `npm run build` first run `npm run data`, which builds the dictionary into
+`public/data/`. Word data sources and licences are listed in [`data/README.md`](data/README.md).
+
+To check an Anki export with Anki's own importer:
+
+```sh
+pip install anki
+node scripts/sample-apkg.ts sample.apkg
+python scripts/verify-apkg.py sample.apkg
 ```
 
 ## How we work
