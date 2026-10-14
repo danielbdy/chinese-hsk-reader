@@ -38,7 +38,7 @@ test('"I know this" hides the pinyin for that word', async ({ page }) => {
   const word = page.locator('[data-word="规划"]')
   await expect(word.locator('rt')).toHaveCount(1)
   await longPress(word)
-  await page.getByRole('button', { name: 'I know this' }).click()
+  await page.getByRole('button', { name: 'Hide pinyin' }).click()
   await page.keyboard.press('Escape')
   await expect(word.locator('rt')).toHaveCount(0)
 })

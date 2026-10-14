@@ -5,23 +5,26 @@ interface Props {
   article: Article
   level: number
   overrides: Overrides
+  /** Off hides every pinyin mark; a word's own sheet still shows it. */
+  showPinyin: boolean
+  size: 's' | 'm' | 'l'
   selected: Token | null
   onSelect: (token: Token) => void
 }
 
-export function Reader({ article, level, overrides, selected, onSelect }: Props) {
+export function Reader({ article, level, overrides, showPinyin, size, selected, onSelect }: Props) {
   const press = useLongPress<HTMLElement>((el) => {
     const token = article.paragraphs[Number(el.dataset.p)]?.[Number(el.dataset.i)]
     if (token) onSelect(token)
   }, '.word')
 
   return (
-    <article className="reader" lang="zh-CN" {...press}>
+    <article className={`reader reader--${size}`} lang="zh-CN" {...press}>
       {article.paragraphs.map((tokens, p) => (
         <p key={p}>
           {tokens.map((token, i) => {
             if (!token.isWord) return <span key={i}>{token.text}</span>
-            const annotated = needsPinyin(token, level, overrides)
+            const annotated = showPinyin && needsPinyin(token, level, overrides)
             const classes = ['word', annotated && 'is-unknown', token === selected && 'is-selected']
             return (
               <span
