@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { ArticleInput } from './components/ArticleInput'
 import { LevelPicker } from './components/LevelPicker'
 import { Reader } from './components/Reader'
+import { SavedWords } from './components/SavedWords'
 import { WordSheet } from './components/WordSheet'
 import { useLocalStorage } from './hooks/useLocalStorage'
 import { useWordData } from './hooks/useWordData'
@@ -17,6 +18,7 @@ function App() {
   const [cards, setCards] = useLocalStorage<Card[]>('cards', [])
   const [editing, setEditing] = useState(text === '')
   const [selected, setSelected] = useState<Token | null>(null)
+  const [showSaved, setShowSaved] = useState(false)
 
   const overrides: Overrides = useMemo(
     () => ({ known: new Set(known), unknown: new Set(unknown) }),
@@ -60,6 +62,7 @@ function App() {
               meaning,
               hsk: token.hsk,
               sentence,
+              source: text.split('\n')[0].trim().slice(0, 60),
               addedAt: new Date().toISOString(),
             },
           ],
@@ -71,7 +74,18 @@ function App() {
       <header className="app-header">
         <h1>HSK Reader</h1>
         <LevelPicker level={level} onChange={setLevel} />
+        <button type="button" className="saved-button" onClick={() => setShowSaved(true)}>
+          Saved ({cards.length})
+        </button>
       </header>
+
+      {showSaved && (
+        <SavedWords
+          cards={cards}
+          onRemove={(word) => setCards((list) => list.filter((c) => c.word !== word))}
+          onClose={() => setShowSaved(false)}
+        />
+      )}
 
       {editing || !text ? (
         <ArticleInput

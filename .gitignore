@@ -27,3 +27,6 @@ public/data/
 # Playwright
 test-results/
 playwright-report/
+
+# Generated decks
+*.apkg
