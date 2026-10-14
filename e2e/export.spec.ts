@@ -13,11 +13,11 @@ test('saved words download as an Anki package', async ({ page }) => {
   await word.dispatchEvent('pointerdown', point)
   await page.waitForTimeout(600)
   await word.dispatchEvent('pointerup', point)
-  await page.getByRole('button', { name: 'Add to Anki' }).click()
+  await expect(page.getByText('Added to your flashcards ✓')).toBeVisible()
   await page.keyboard.press('Escape')
 
-  await page.getByRole('button', { name: 'Saved (1)' }).click()
-  const panel = page.getByRole('dialog', { name: 'Saved words' })
+  await page.getByRole('button', { name: 'Flashcards (1)' }).click()
+  const panel = page.getByRole('dialog', { name: 'Flashcards' })
   await expect(panel).toContainText('规划')
 
   const downloading = page.waitForEvent('download')

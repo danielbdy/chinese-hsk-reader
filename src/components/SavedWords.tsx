@@ -103,11 +103,11 @@ export function SavedWords({ cards, knownCount, onRemove, onResetMarks, onClose 
         className="sheet"
         role="dialog"
         aria-modal="true"
-        aria-label="Saved words"
+        aria-label="Flashcards"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="sheet__head">
-          <h2 className="sheet__title">Saved words ({cards.length})</h2>
+          <h2 className="sheet__title">Flashcards ({cards.length})</h2>
           <button type="button" className="button-link" onClick={onClose}>
             Close
           </button>
@@ -123,7 +123,7 @@ export function SavedWords({ cards, knownCount, onRemove, onResetMarks, onClose 
         )}
 
         {cards.length === 0 ? (
-          <p className="sheet__note">Long-press a word in an article and tap “Add to Anki” to save it here.</p>
+          <p className="sheet__note">Tap a word in an article to look it up. It's added here automatically.</p>
         ) : (
           <>
             <ul className="saved-list">

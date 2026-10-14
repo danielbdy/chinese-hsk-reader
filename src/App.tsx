@@ -8,6 +8,7 @@ import { useLocalStorage } from './hooks/useLocalStorage'
 import { useWordData } from './hooks/useWordData'
 import { analyse, needsPinyin, type Overrides, type Token } from './lib/annotate'
 import type { Card } from './lib/cards'
+import { lookup } from './lib/lookup'
 
 type TextSize = 's' | 'm' | 'l'
 const SIZE_LABEL: Record<TextSize, string> = { s: 'A', m: 'A+', l: 'A++' }
@@ -23,7 +24,10 @@ function App() {
   const [unknown, setUnknown] = useLocalStorage<string[]>('unknown', [])
   const [cards, setCards] = useLocalStorage<Card[]>('cards', [])
   const [history, setHistory] = useLocalStorage<Article[]>('history', [])
-  const [showPinyin, setShowPinyin] = useLocalStorage('showPinyin', true)
+  // Off by default: pinyin appears only on words you've tapped. On adds it above every word past your level.
+  const [aboveLevel, setAboveLevel] = useLocalStorage('pinyinAboveLevel', false)
+  // Words you removed from your flashcards; tapping them again won't add them back.
+  const [dismissed, setDismissed] = useLocalStorage<string[]>('dismissed', [])
   const [textSize, setTextSize] = useLocalStorage<TextSize>('textSize', 'm')
   const [editing, setEditing] = useState(text === '')
   const [selected, setSelected] = useState<Token | null>(null)
@@ -36,6 +40,9 @@ function App() {
     const timer = setTimeout(() => setRemoved(null), 6000)
     return () => clearTimeout(timer)
   }, [removed])
+
+  // Words you've tapped (your flashcards) keep their pinyin in the text.
+  const revealed = useMemo(() => new Set(cards.map((c) => c.word)), [cards])
 
   const overrides: Overrides = useMemo(
     () => ({ known: new Set(known), unknown: new Set(unknown) }),
@@ -81,6 +88,7 @@ function App() {
     if (index === -1) return
     setRemoved({ card: cards[index], index })
     setCards((list) => list.filter((c) => c.word !== word))
+    setDismissed((list) => [...list.filter((w) => w !== word), word])
   }
 
   const undoRemove = () => {
@@ -91,15 +99,16 @@ function App() {
       next.splice(Math.min(index, next.length), 0, card)
       return next
     })
+    setDismissed((list) => list.filter((w) => w !== card.word))
     setRemoved(null)
   }
 
-  const toggleSaved = (token: Token, sentence: string, meaning: string) => {
-    if (cards.some((c) => c.word === token.text)) {
-      removeCard(token.text)
-      return
-    }
-    setCards((list) => [
+  const addCard = (token: Token) => {
+    if (wordData.status !== 'ready' || !article) return
+    const sentence = article.sentences[token.sentence] ?? ''
+    const meaning = lookup(token, wordData.data).summary
+    setDismissed((list) => list.filter((w) => w !== token.text))
+    setCards((list) => list.some((c) => c.word === token.text) ? list : [
       ...list,
       {
         word: token.text,
@@ -113,6 +122,13 @@ function App() {
     ])
   }
 
+  /** Opening a word shows it and adds it to your flashcards, unless you removed it before. */
+  const openWord = (token: Token) => {
+    setSelected(token)
+    const saved = cards.some((c) => c.word === token.text)
+    if (!saved && !dismissed.includes(token.text)) addCard(token)
+  }
+
   const resetMarks = () => {
     setKnown([])
     setUnknown([])
@@ -124,13 +140,13 @@ function App() {
         <h1>HSK Reader</h1>
         <LevelPicker level={level} onChange={setLevel} />
         <button type="button" className="saved-button" onClick={() => setShowSaved(true)}>
-          Saved ({cards.length})
+          Flashcards ({cards.length})
         </button>
       </header>
 
       {removed && (
         <div className="undo-banner" role="status">
-          <span>Removed {removed.card.word} from saved words.</span>
+          <span>Removed {removed.card.word} from flashcards.</span>
           <button type="button" className="button-link" onClick={undoRemove}>
             Undo
           </button>
@@ -188,20 +204,21 @@ function App() {
                   </button>
                 ))}
               </div>
-              <button type="button" className="button-link" onClick={() => setShowPinyin(!showPinyin)}>
-                {showPinyin ? 'Hide all pinyin' : 'Show all pinyin'}
+              <button type="button" className="button-link" onClick={() => setAboveLevel(!aboveLevel)}>
+                {`${aboveLevel ? 'Hide' : 'Show'} pinyin above HSK ${level}`}
               </button>
             </div>
             {source && <h2 className="reader-title">{source}</h2>}
-            <p className="hint">Long-press a word (or click it on a computer) to see its meaning.</p>
+            <p className="hint">Tap a word to see its pinyin, meaning and HSK level. It's added to your flashcards.</p>
             <Reader
               article={article}
               level={level}
               overrides={overrides}
-              showPinyin={showPinyin}
+              aboveLevel={aboveLevel}
+              revealed={revealed}
               size={textSize}
               selected={selected}
-              onSelect={setSelected}
+              onSelect={openWord}
             />
             {selected && (
               <WordSheet
@@ -209,10 +226,10 @@ function App() {
                 sentence={article.sentences[selected.sentence] ?? ''}
                 data={wordData.data}
                 showsPinyin={needsPinyin(selected, level, overrides)}
+                levelPinyin={aboveLevel}
                 saved={cards.some((c) => c.word === selected.text)}
-                onToggleSaved={(meaning) =>
-                  toggleSaved(selected, article.sentences[selected.sentence] ?? '', meaning)
-                }
+                onAdd={() => addCard(selected)}
+                onRemove={() => removeCard(selected.text)}
                 onToggleKnown={() => toggleKnown(selected)}
                 onClose={() => setSelected(null)}
               />
