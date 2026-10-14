@@ -4,13 +4,14 @@ const HOLD_MS = 450
 const MOVE_TOLERANCE_PX = 10
 
 /**
- * Pointer handlers that call `onPress` after a long press on touch screens or a click with a mouse.
+ * Pointer handlers that call `onPress` on a tap or click, or after a long press on touch screens.
  * The target element is found from the event, so one set of handlers can serve a whole article.
  */
 export function useLongPress<T extends Element>(onPress: (target: T) => void, selector: string) {
   const timer = useRef<number | undefined>(undefined)
   const start = useRef({ x: 0, y: 0 })
-  const pointerType = useRef('mouse')
+  // Set when a long press already opened the word, so the click that may follow doesn't open it twice.
+  const fired = useRef(false)
 
   const clear = () => {
     window.clearTimeout(timer.current)
@@ -22,7 +23,7 @@ export function useLongPress<T extends Element>(onPress: (target: T) => void, se
 
   return {
     onPointerDown(event: React.PointerEvent) {
-      pointerType.current = event.pointerType
+      fired.current = false
       if (event.pointerType === 'mouse') return
       const target = find(event)
       if (!target) return
@@ -30,6 +31,7 @@ export function useLongPress<T extends Element>(onPress: (target: T) => void, se
       clear()
       timer.current = window.setTimeout(() => {
         timer.current = undefined
+        fired.current = true
         navigator.vibrate?.(10)
         onPress(target)
       }, HOLD_MS)
@@ -43,8 +45,8 @@ export function useLongPress<T extends Element>(onPress: (target: T) => void, se
     onPointerUp: clear,
     onPointerCancel: clear,
     onClick(event: React.MouseEvent) {
-      // Touch taps also fire click; only a mouse click opens a word, touch needs the long press.
-      if (pointerType.current !== 'mouse') return
+      // A tap fires click too (but not after scrolling), so a plain tap opens the word.
+      if (fired.current) return
       const target = find(event)
       if (target) onPress(target)
     },

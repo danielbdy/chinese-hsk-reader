@@ -32,15 +32,15 @@ test('the title shows above the article and past articles can be reopened', asyn
   await expect(page.locator('.reader [data-word="规划"]')).toBeVisible()
 })
 
-test('pinyin can be hidden for the whole page and the text resized', async ({ page }) => {
+test('pinyin above the level can be switched on and off, and the text resized', async ({ page }) => {
   await read(page, '国家铁路局发布了规划。')
   const reader = page.locator('.reader')
-  await expect(reader.locator('rt').first()).toBeVisible()
-
-  await page.getByRole('button', { name: 'Hide all pinyin' }).click()
   await expect(reader.locator('rt')).toHaveCount(0)
-  await page.getByRole('button', { name: 'Show all pinyin' }).click()
+
+  await page.getByRole('button', { name: 'Show pinyin above HSK 3' }).click()
   await expect(reader.locator('rt').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Hide pinyin above HSK 3' }).click()
+  await expect(reader.locator('rt')).toHaveCount(0)
 
   await page.getByRole('button', { name: 'Larger text' }).click()
   await expect(reader).toHaveClass(/reader--l/)
@@ -50,26 +50,25 @@ test('removing a saved word can be undone', async ({ page }) => {
   await read(page, '国家铁路局发布了规划。')
   await longPress(page.locator('[data-word="规划"]'))
   const sheet = page.getByRole('dialog', { name: 'Meaning of 规划' })
-  await sheet.getByRole('button', { name: 'Add to Anki' }).click()
-  await sheet.getByRole('button', { name: 'Saved ✓' }).click()
+  await sheet.getByRole('button', { name: 'Remove from flashcards' }).click()
 
-  await expect(page.getByRole('button', { name: 'Saved (0)' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Flashcards (0)' })).toBeVisible()
   await page.getByRole('button', { name: 'Undo' }).click()
-  await expect(page.getByRole('button', { name: 'Saved (1)' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Flashcards (1)' })).toBeVisible()
 })
 
-test('saved words show their sentence, and pinyin marks can be reset', async ({ page }) => {
+test('flashcards show their sentence, and pinyin marks can be reset', async ({ page }) => {
   await read(page, '国家铁路局发布了规划。')
+  await page.getByRole('button', { name: 'Show pinyin above HSK 3' }).click()
   const word = page.locator('[data-word="规划"]')
   await longPress(word)
   const sheet = page.getByRole('dialog', { name: 'Meaning of 规划' })
-  await sheet.getByRole('button', { name: 'Add to Anki' }).click()
   await sheet.getByRole('button', { name: 'Hide pinyin' }).click()
   await page.keyboard.press('Escape')
   await expect(word.locator('rt')).toHaveCount(0)
 
-  await page.getByRole('button', { name: 'Saved (1)' }).click()
-  const panel = page.getByRole('dialog', { name: 'Saved words' })
+  await page.getByRole('button', { name: 'Flashcards (1)' }).click()
+  const panel = page.getByRole('dialog', { name: 'Flashcards' })
   await expect(panel.locator('.saved-list__sentence')).toContainText('国家铁路局发布了规划')
   await panel.getByRole('button', { name: 'Reset to HSK level' }).click()
   await panel.getByRole('button', { name: 'Close' }).click()

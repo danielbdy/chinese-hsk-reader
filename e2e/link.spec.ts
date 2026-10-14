@@ -28,10 +28,10 @@ test('a news link is fetched, read, and its cards can be previewed', async ({ pa
   await word.dispatchEvent('pointerdown', point)
   await page.waitForTimeout(600)
   await word.dispatchEvent('pointerup', point)
-  await page.getByRole('button', { name: 'Add to Anki' }).click()
+  await expect(page.getByText('Added to your flashcards ✓')).toBeVisible()
   await page.keyboard.press('Escape')
 
-  await page.getByRole('button', { name: /Saved \(1\)/ }).click()
+  await page.getByRole('button', { name: 'Flashcards (1)' }).click()
   await page.getByRole('button', { name: 'Preview' }).click()
   const preview = page.locator('.card-preview')
   await expect(preview).toContainText('Front')

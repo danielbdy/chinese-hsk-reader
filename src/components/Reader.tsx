@@ -5,14 +5,16 @@ interface Props {
   article: Article
   level: number
   overrides: Overrides
-  /** Off hides every pinyin mark; a word's own sheet still shows it. */
-  showPinyin: boolean
+  /** On: pinyin above every word past the level (with your Hide/Show choices). Off: only on tapped words. */
+  aboveLevel: boolean
+  /** Words the reader has tapped: they keep their pinyin and show their HSK level. */
+  revealed: ReadonlySet<string>
   size: 's' | 'm' | 'l'
   selected: Token | null
   onSelect: (token: Token) => void
 }
 
-export function Reader({ article, level, overrides, showPinyin, size, selected, onSelect }: Props) {
+export function Reader({ article, level, overrides, aboveLevel, revealed, size, selected, onSelect }: Props) {
   const press = useLongPress<HTMLElement>((el) => {
     const token = article.paragraphs[Number(el.dataset.p)]?.[Number(el.dataset.i)]
     if (token) onSelect(token)
@@ -24,7 +26,8 @@ export function Reader({ article, level, overrides, showPinyin, size, selected, 
         <p key={p}>
           {tokens.map((token, i) => {
             if (!token.isWord) return <span key={i}>{token.text}</span>
-            const annotated = showPinyin && needsPinyin(token, level, overrides)
+            const tapped = revealed.has(token.text)
+            const annotated = aboveLevel ? needsPinyin(token, level, overrides) : tapped
             const classes = ['word', annotated && 'is-unknown', token === selected && 'is-selected']
             return (
               <span
@@ -41,6 +44,11 @@ export function Reader({ article, level, overrides, showPinyin, size, selected, 
                   </ruby>
                 ) : (
                   token.text
+                )}
+                {tapped && token.hsk !== null && (
+                  <sup className="word__level" aria-label={`HSK ${token.hsk}`}>
+                    {token.hsk}
+                  </sup>
                 )}
               </span>
             )

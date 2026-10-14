@@ -7,14 +7,28 @@ interface Props {
   sentence: string
   data: WordData
   showsPinyin: boolean
+  /** True when the page shows pinyin by HSK level; only then can a word be marked known. */
+  levelPinyin: boolean
   saved: boolean
-  onToggleSaved: (summary: string) => void
+  onAdd: () => void
+  onRemove: () => void
   onToggleKnown: () => void
   onClose: () => void
 }
 
 /** Bottom sheet with a word's pinyin, meanings, level and the sentence it came from. */
-export function WordSheet({ token, sentence, data, showsPinyin, saved, onToggleSaved, onToggleKnown, onClose }: Props) {
+export function WordSheet({
+  token,
+  sentence,
+  data,
+  showsPinyin,
+  levelPinyin,
+  saved,
+  onAdd,
+  onRemove,
+  onToggleKnown,
+  onClose,
+}: Props) {
   const result = lookup(token, data)
   const sheet = useRef<HTMLElement>(null)
 
@@ -50,7 +64,9 @@ export function WordSheet({ token, sentence, data, showsPinyin, saved, onToggleS
             </div>
             <div className="sheet__pinyin">{token.pinyin}</div>
           </div>
-          <span className={token.hsk ? 'badge' : 'badge is-muted'}>{token.hsk ? `HSK ${token.hsk}` : 'Not in HSK'}</span>
+          <span className={token.hsk ? 'badge sheet__level' : 'badge sheet__level is-muted'}>
+            {token.hsk ? `HSK ${token.hsk}` : 'Not in HSK'}
+          </span>
         </header>
 
         {!result.whole && <p className="sheet__note">Not in the dictionary as one word. Its parts:</p>}
@@ -87,17 +103,24 @@ export function WordSheet({ token, sentence, data, showsPinyin, saved, onToggleS
           )}
         </blockquote>
 
+        <p className="sheet__note" role="status">
+          {saved ? 'Added to your flashcards ✓' : 'Not in your flashcards.'}
+        </p>
         <div className="sheet__actions">
-          <button type="button" className="button-secondary" onClick={onToggleKnown}>
-            {showsPinyin ? 'Hide pinyin' : 'Show pinyin'}
-          </button>
-          <button
-            type="button"
-            className={saved ? 'button-secondary is-done' : 'button-primary'}
-            onClick={() => onToggleSaved(result.summary)}
-          >
-            {saved ? 'Saved ✓' : 'Add to Anki'}
-          </button>
+          {levelPinyin && (
+            <button type="button" className="button-secondary" onClick={onToggleKnown}>
+              {showsPinyin ? 'Hide pinyin' : 'Show pinyin'}
+            </button>
+          )}
+          {saved ? (
+            <button type="button" className="button-secondary" onClick={onRemove}>
+              Remove from flashcards
+            </button>
+          ) : (
+            <button type="button" className="button-primary" onClick={onAdd}>
+              Add to flashcards
+            </button>
+          )}
         </div>
       </section>
     </div>

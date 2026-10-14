@@ -160,6 +160,7 @@ button {
 .word {
   border-radius: 4px;
   -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none;
   user-select: none;
   cursor: pointer;
@@ -528,4 +529,19 @@ button {
 .back-link {
   padding: 0;
   margin-bottom: 8px;
+}
+
+/* Small HSK level in the corner of a word you've tapped. */
+.word__level {
+  font-size: 0.4em;
+  line-height: 1;
+  vertical-align: top;
+  margin-left: 1px;
+  color: var(--ink-quiet);
+  font-weight: 600;
+}
+
+.sheet__level {
+  font-size: 0.75rem;
+  padding: 2px 8px;
 }
