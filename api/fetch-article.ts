@@ -1,5 +1,5 @@
-import { extractArticle, decodeHtml } from '../src/lib/extract.ts'
-import { publicHttpUrl } from '../src/lib/safeUrl.ts'
+import { extractArticle, decodeHtml } from '../src/lib/extract.js'
+import { publicHttpUrl } from '../src/lib/safeUrl.js'
 
 // Vercel serverless function: fetches one news page and returns its title and paragraphs.
 // Browsers can't read other sites directly (CORS), so the fetch happens here.
