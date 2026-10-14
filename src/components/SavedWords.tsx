@@ -11,7 +11,10 @@ const isBlocked = (error: unknown) => error instanceof DOMException && error.nam
 
 interface Props {
   cards: Card[]
+  /** How many words the reader marked "Hide pinyin" or "Show pinyin". */
+  knownCount: number
   onRemove: (word: string) => void
+  onResetMarks: () => void
   onClose: () => void
 }
 
@@ -35,7 +38,7 @@ function CardPreview({ card }: { card: Card }) {
   )
 }
 
-export function SavedWords({ cards, onRemove, onClose }: Props) {
+export function SavedWords({ cards, knownCount, onRemove, onResetMarks, onClose }: Props) {
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
   const [open, setOpen] = useState<string | null>(null)
@@ -110,6 +113,15 @@ export function SavedWords({ cards, onRemove, onClose }: Props) {
           </button>
         </header>
 
+        {knownCount > 0 && (
+          <p className="sheet__note saved-marks">
+            You changed the pinyin setting for {knownCount} word{knownCount === 1 ? '' : 's'}.{' '}
+            <button type="button" className="button-link" onClick={onResetMarks}>
+              Reset to HSK level
+            </button>
+          </p>
+        )}
+
         {cards.length === 0 ? (
           <p className="sheet__note">Long-press a word in an article and tap “Add to Anki” to save it here.</p>
         ) : (
@@ -123,6 +135,11 @@ export function SavedWords({ cards, onRemove, onClose }: Props) {
                   <span className="saved-list__detail">
                     <span className="sheet__sense-pinyin">{card.pinyin}</span> {card.meaning}
                   </span>
+                  <span
+                    className="saved-list__sentence"
+                    lang="zh-CN"
+                    dangerouslySetInnerHTML={{ __html: highlight(card.sentence, card.word) }}
+                  />
                   <span className="saved-list__actions">
                     <button
                       type="button"
@@ -196,9 +213,14 @@ export function SavedWords({ cards, onRemove, onClose }: Props) {
                   })
                 }
               >
-                Download as text instead
+                Text file (for desktop Anki)
               </button>
             </div>
+            <ul className="export__help">
+              {canShare && <li>Send to AnkiDroid opens your phone's share menu. Pick AnkiDroid there.</li>}
+              <li>Download .apkg saves the deck. Open the file with AnkiDroid or Anki to import it.</li>
+              <li>Importing again updates words you already have, so nothing is duplicated.</li>
+            </ul>
             {message && (
               <p className="sheet__note" role="status">
                 {message}

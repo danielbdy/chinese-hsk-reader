@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import type { Token, WordData } from '../lib/annotate'
 import { lookup } from '../lib/lookup'
 
@@ -16,6 +16,14 @@ interface Props {
 /** Bottom sheet with a word's pinyin, meanings, level and the sentence it came from. */
 export function WordSheet({ token, sentence, data, showsPinyin, saved, onToggleSaved, onToggleKnown, onClose }: Props) {
   const result = lookup(token, data)
+  const sheet = useRef<HTMLElement>(null)
+
+  // Move focus into the sheet for keyboard and screen reader users, and give it back on close.
+  useEffect(() => {
+    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    sheet.current?.focus()
+    return () => previous?.focus()
+  }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -27,10 +35,12 @@ export function WordSheet({ token, sentence, data, showsPinyin, saved, onToggleS
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <section
+        ref={sheet}
         className="sheet"
         role="dialog"
         aria-modal="true"
         aria-label={`Meaning of ${token.text}`}
+        tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
       >
         <header className="sheet__head">
@@ -79,7 +89,7 @@ export function WordSheet({ token, sentence, data, showsPinyin, saved, onToggleS
 
         <div className="sheet__actions">
           <button type="button" className="button-secondary" onClick={onToggleKnown}>
-            {showsPinyin ? 'I know this' : 'Show pinyin'}
+            {showsPinyin ? 'Hide pinyin' : 'Show pinyin'}
           </button>
           <button
             type="button"

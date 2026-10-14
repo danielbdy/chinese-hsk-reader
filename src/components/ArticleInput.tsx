@@ -10,9 +10,14 @@ export interface Article {
 }
 
 interface Props {
-  initialText: string
+  /** Articles read before, newest first. */
+  recent: Article[]
   onRead: (article: Article) => void
+  onOpenRecent: (article: Article) => void
 }
+
+/** A short name for a past article: its title, else its first line. */
+const articleName = (article: Article) => (article.title || article.text.split('\n')[0]).trim().slice(0, 60)
 
 interface FetchResponse {
   url: string
@@ -20,9 +25,10 @@ interface FetchResponse {
   paragraphs: string[]
 }
 
-export function ArticleInput({ initialText, onRead }: Props) {
+export function ArticleInput({ recent, onRead, onOpenRecent }: Props) {
   const [mode, setMode] = useState<'text' | 'link'>('text')
-  const [text, setText] = useState(initialText)
+  const [text, setText] = useState('')
+  const [title, setTitle] = useState('')
   const [link, setLink] = useState('')
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle')
   const [error, setError] = useState('')
@@ -71,7 +77,7 @@ export function ArticleInput({ initialText, onRead }: Props) {
         <form
           onSubmit={(e) => {
             e.preventDefault()
-            if (trimmed) onRead({ text: trimmed })
+            if (trimmed) onRead({ text: trimmed, title: title.trim() || undefined })
           }}
         >
           <label htmlFor="article">Paste a Chinese article</label>
@@ -82,6 +88,15 @@ export function ArticleInput({ initialText, onRead }: Props) {
             placeholder="把中文文章粘贴到这里…"
             rows={10}
             lang="zh-CN"
+          />
+          <label htmlFor="article-title">Title (optional)</label>
+          <input
+            id="article-title"
+            type="text"
+            autoComplete="off"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Shown above the article and on saved cards"
           />
           <div className="article-input__actions">
             <button type="button" className="button-secondary" onClick={() => setText(SAMPLE_ARTICLE)}>
@@ -122,6 +137,21 @@ export function ArticleInput({ initialText, onRead }: Props) {
             </button>
           </div>
         </form>
+      )}
+
+      {recent.length > 0 && (
+        <section className="recent" aria-label="Recent articles">
+          <h2 className="recent__title">Recent articles</h2>
+          <ul className="recent__list">
+            {recent.map((article) => (
+              <li key={article.text.slice(0, 200)}>
+                <button type="button" className="recent__item" lang="zh-CN" onClick={() => onOpenRecent(article)}>
+                  {articleName(article)}
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
     </div>
   )
